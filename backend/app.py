@@ -3,19 +3,6 @@ from flask_cors import CORS
 import requests
 import jieba
 from collections import Counter
-from flask import Flask, request, jsonify
-from flask_cors import CORS
-import requests
-import jieba
-from collections import Counter
-from paddleocr import PaddleOCR
-import os
-
-# OCR 相关
-import cv2
-import numpy as np
-from paddleocr import PaddleOCR
-
 
 app = Flask(__name__)
 CORS(app)
@@ -61,7 +48,6 @@ def generate():
     except Exception as e:
         return jsonify({"error": "生成失败", "detail": str(e)}), 500
 
-
 @app.route("/wordcloud_from_text", methods=["POST"])
 def wordcloud_from_text():
     data = request.get_json()
@@ -79,33 +65,6 @@ def wordcloud_from_text():
 
     print("✅ 返回关键词：", result)
     return jsonify({"result": result})
-
-ocr = PaddleOCR(use_angle_cls=True, lang='ch')  # 初始化OCR模型（仅执行一次）
-
-@app.route("/ocr_image", methods=["POST"])
-def ocr_image():
-    image = request.files.get("image")
-    if not image:
-        return jsonify({"error": "缺少图片"}), 400
-
-    content = image.read()
-    npimg = np.frombuffer(content, np.uint8)
-    img = cv2.imdecode(npimg, cv2.IMREAD_COLOR)
-
-    result = ocr.ocr(img, cls=True)
-    text = "\n".join([line[1][0] for line in result[0]])
-
-    # 分词并计算词频
-    words = jieba.lcut(text)
-    filtered = [w for w in words if len(w.strip()) > 1 and w.isalpha()]
-    freq = Counter(filtered)
-    top_words = freq.most_common(30)
-    result = [{"text": word, "count": count} for word, count in top_words]
-
-    return jsonify({"result": result})
-
-
-
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
