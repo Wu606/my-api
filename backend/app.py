@@ -1,7 +1,8 @@
-
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import requests
+import jieba
+from collections import Counter
 
 app = Flask(__name__)
 CORS(app)
@@ -12,14 +13,12 @@ API_URL = "https://api.deepseek.com/v1/chat/completions"
 @app.route("/generate", methods=["POST"])
 def generate():
     data = request.get_json()
-
     prompt = data.get("prompt", "")
-    mode = data.get("mode", "default")  # 支持多模式请求
+    mode = data.get("mode", "default")
 
     if not prompt and mode != "daily":
         return jsonify({"error": "缺少提示词"}), 400
 
-    # 根据功能模式处理 prompt
     if mode == "article":
         prompt = f"请写一篇关于“{prompt}”的中文文章，300字左右。"
     elif mode == "poem":
@@ -28,7 +27,6 @@ def generate():
         prompt = f"请将下面这句话改写得更文艺幽默一点：{prompt}"
     elif mode == "daily":
         prompt = "请给我一句 AI 每日金句或者励志鸡汤。"
-    # mode == "chat" 时不处理 prompt
 
     headers = {
         "Authorization": f"Bearer {API_KEY}",
@@ -49,6 +47,26 @@ def generate():
         return jsonify({"result": content})
     except Exception as e:
         return jsonify({"error": "生成失败", "detail": str(e)}), 500
+
+
+@app.route("/wordcloud_from_text", methods=["POST"])
+def wordcloud_from_text():
+    data = request.get_json()
+    text = data.get("text", "")
+
+    if not text.strip():
+        return jsonify({"error": "文本为空"}), 400
+
+    print("✅ 收到上传文本内容，开始分词")
+    words = jieba.lcut(text)
+    filtered = [w for w in words if len(w.strip()) > 1 and w.isalpha()]
+    freq = Counter(filtered)
+    top_words = freq.most_common(30)
+    result = [{"text": word, "count": count} for word, count in top_words]
+
+    print("✅ 返回关键词：", result)
+    return jsonify({"result": result})
+
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
