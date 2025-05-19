@@ -82,15 +82,11 @@ def wordcloud_from_text():
 
 ocr = PaddleOCR(use_angle_cls=True, lang='ch')  # 初始化OCR模型（仅执行一次）
 
-
 @app.route("/ocr_image", methods=["POST"])
 def ocr_image():
-    print("📷 正在接收图片文件")
     image = request.files.get("image")
     if not image:
-        print("❌ 没收到图片")
         return jsonify({"error": "缺少图片"}), 400
-
 
     content = image.read()
     npimg = np.frombuffer(content, np.uint8)
