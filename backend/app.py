@@ -66,6 +66,22 @@ def wordcloud_from_text():
 
     print("✅ 返回关键词：", result)
     return jsonify({"result": result})
+@app.route("/ocr_image", methods=["POST"])
+def ocr_image():
+    image = request.files.get("image")
+    if not image:
+        return jsonify({"error": "缺少图片"}), 400
+
+    from paddleocr import PaddleOCR
+    ocr = PaddleOCR(use_angle_cls=True, lang='ch')
+    import cv2
+    import numpy as np
+    content = image.read()
+    img = cv2.imdecode(np.frombuffer(content, np.uint8), cv2.IMREAD_COLOR)
+    result = ocr.ocr(img, cls=True)
+    text = "\n".join([line[1][0] for line in result[0]])
+    return jsonify({"text": text})
+
 
 
 if __name__ == "__main__":
